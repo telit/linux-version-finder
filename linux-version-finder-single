@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+get_version()
+{
+    git describe --contains "$1" | cut -d"^" -f1 | cut -d"~" -f1
+}
+
+# Add the mainline
+commits="$1 "
+
+# Add the backports
+commits+=$(git log --all --grep="commit $1 upstream" --format=%H)
+
+# Print all of them
+for commit in $commits; do
+    get_version "$commit"
+done | sort -V | xargs

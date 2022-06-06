@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+
+import os.path
+import logging
+import subprocess
+import sys
+import typer
+import typing
+import re
+import collections
+
+
+def linux_version_finder_single(single_script_path: str, commit: str) -> list[str]:
+    completedProcess = subprocess.run(
+        [single_script_path, commit],
+        capture_output=True,
+        check=True,
+    )
+    output = completedProcess.stdout.decode("utf-8")
+    return output.split()
+
+
+def get_minor_version(version: str) -> str:
+    m = re.match(r"^(v\d+\.\d+)", version)
+    if not m:
+        sys.exit("error: the " + version + " tag use an unexpected format")
+    return m.group(1)
+
+
+def get_minor_versions() -> list[str]:
+    completedProcess = subprocess.run(
+        "git tag -l 'v*' | cut -d. -f-2 | cut -d- -f1 | sort -u -V | xargs",
+        capture_output=True,
+        check=True,
+        shell=True,
+    )
+    return list(completedProcess.stdout.decode("utf-8").split())
+
+
+def version_key(version: str) -> int:
+    m = re.match(r"^v\d+\.\d+\-rc(\d+)", version)
+    if m:
+        return int(m.group(1))
+
+    m = re.match(r"^v\d+\.\d+\.(\d+)", version)
+    if not m:
+        sys.exit("error: the " + version + " tag use an unexpected format")
+    return int(m.group(1)) * 10
+
+
+def main(
+    commits: typing.List[str],
+    debug: bool = typer.Option(False, help="Print debug info."),
+):
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+    single_script_path = os.path.dirname(sys.argv[0]) + "/linux-version-finder-single"
+    minor_versions = get_minor_versions()
+    versions_count = collections.defaultdict(list)
+    for commit in commits:
+        versions = linux_version_finder_single(single_script_path, commit)
+        for version in versions:
+            minor_version = get_minor_version(version)
+            versions_count[minor_version].append(version)
+        start = minor_versions.index(minor_version) + 1
+        for i in range(start, len(minor_versions)):
+            minor_version = minor_versions[i]
+            versions_count[minor_version].append(minor_version + "-rc0")
+    logging.debug(versions_count)
+
+    len_commits = len(commits)
+    first = True
+    for minor_version in minor_versions:
+        minor_version_count = versions_count[minor_version]
+        if len_commits == len(minor_version_count):
+            version = max(minor_version_count, key=version_key)
+            if not version.endswith("rc0"):
+                if first:
+                    print(version, end="")
+                    first = False
+                else:
+                    print("", version, end="")
+    print("")
+
+
+if __name__ == "__main__":
+    typer.run(main)
