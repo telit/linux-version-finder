@@ -5,12 +5,12 @@ import logging
 import subprocess
 import sys
 import typer
-import typing
+from typing import List
 import re
 import collections
 
 
-def linux_version_finder_single(single_script_path: str, commit: str) -> list[str]:
+def linux_version_finder_single(single_script_path: str, commit: str) -> List[str]:
     completedProcess = subprocess.run(
         [single_script_path, commit],
         capture_output=True,
@@ -27,7 +27,7 @@ def get_minor_version(version: str) -> str:
     return m.group(1)
 
 
-def get_minor_versions() -> list[str]:
+def get_minor_versions() -> List[str]:
     completedProcess = subprocess.run(
         "git tag -l 'v*' | cut -d. -f-2 | cut -d- -f1 | sort -u -V | xargs",
         capture_output=True,
@@ -49,7 +49,7 @@ def version_key(version: str) -> int:
 
 
 def main(
-    commits: typing.List[str],
+    commits: List[str],
     debug: bool = typer.Option(False, help="Print debug info."),
 ):
     if debug:
