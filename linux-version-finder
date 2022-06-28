@@ -14,6 +14,9 @@ import typer
 
 
 def linux_version_finder_single(single_script_path: str, commit: str) -> list[str]:
+    """Retrieve Linux versions for a single commit
+
+    Find the Linux versions where a commit is present or was backported"""
     completedProcess = subprocess.run(
         [single_script_path, commit],
         capture_output=True,
@@ -24,6 +27,11 @@ def linux_version_finder_single(single_script_path: str, commit: str) -> list[st
 
 
 def get_minor_version(version: str) -> str:
+    """Retrieve the Linux minor/major version
+
+    Strip the suffix of "-rcX" or patch version ".X".
+    E.g. "v5.9-rc2" -> "v5.9"
+    E.g. "v3.2.1" -> "v3.2"."""
     m = re.match(r"^(v\d+\.\d+)", version)
     if not m:
         sys.exit("error: the " + version + " tag use an unexpected format")
@@ -31,6 +39,9 @@ def get_minor_version(version: str) -> str:
 
 
 def get_minor_versions() -> list[str]:
+    """Get complete list of minor/major versions
+
+    E.g. ["v3.0", "v3.1", "v3.2"]."""
     completedProcess = subprocess.run(
         "git tag -l 'v*' | cut -d. -f-2 | cut -d- -f1 | sort -u -V | xargs",
         capture_output=True,
@@ -41,6 +52,9 @@ def get_minor_versions() -> list[str]:
 
 
 def version_key(version: str) -> int:
+    """Transform the Linux version in a integer
+
+    This is done in order to compare the Linux versions."""
     m = re.match(r"^v\d+\.\d+\-rc(\d+)", version)
     if m:
         return int(m.group(1))
