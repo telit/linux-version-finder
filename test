@@ -15,17 +15,17 @@ expect eof
 
 # Check a commit with backports
 spawn $tool 2939e1a86f758b55cdba73e29397dd3d94df13bc
-expect "v4.10-rc1 v3.16.42 v4.4.40 v4.8.16 v4.9.1\r"
+expect "v4.10-rc1 v4.9.1 v4.8.16 v4.4.40 v3.16.42\r"
 expect eof
 
 # Return just the second
 spawn $tool 2939e1a86f758b55cdba73e29397dd3d94df13bc 2d327a79ee176930dc72c131a970c891d367c1dc
-expect "v4.9.309 v4.14.274 v4.19.237 v5.4.188 v5.10.109 v5.15.32 v5.16.18 v5.17.1 v5.18-rc1\r"
+expect "v5.18-rc1 v5.17.1 v5.16.18 v5.15.32 v5.10.109 v5.4.188 v4.19.237 v4.14.274 v4.9.309\r"
 expect eof
 
 # Return just the second
 spawn $tool 2939e1a86f758b55cdba73e29397dd3d94df13bc 22b106e5355d6e7a9c3b5cb5ed4ef22ae585ea94
-expect "v5.10.121 v5.15.46 v5.17.14 v5.18.3 v5.19-rc1\r"
+expect "v5.19-rc1 v5.18.3 v5.17.14 v5.15.46 v5.10.121\r"
 expect eof
 
 # Return just the first (is reversed respect to the previous one)

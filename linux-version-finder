@@ -89,7 +89,7 @@ def main(
 
     len_commits = len(commits)
     first = True
-    for minor_version in minor_versions:
+    for minor_version in reversed(minor_versions):
         minor_version_count = versions_count[minor_version]
         if len_commits == len(minor_version_count):
             version = max(minor_version_count, key=version_key)
