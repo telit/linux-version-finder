@@ -65,13 +65,12 @@ def version_key(version: str) -> int:
     return int(m.group(1)) * 10
 
 
-def main(
-    commits: List[str],
-    debug: bool = typer.Option(False, help="Print debug info."),
-):
-    if debug:
-        logging.basicConfig(level=logging.DEBUG)
-    single_script_path = os.path.dirname(sys.argv[0]) + "/linux-version-finder-single"
+def find_commits_versions(
+    commits: list[str], single_script_path: str
+) -> tuple[list[str], dict[str, list]]:
+    """Find all the versions associated to the commits
+
+    This is the first half of the tool and the part the require almost all the cpu/mem"""
     minor_versions = get_minor_versions()
     versions_count = collections.defaultdict(list)
     for commit in commits:
@@ -85,8 +84,13 @@ def main(
             for i in range(start, len(minor_versions)):
                 minor_version = minor_versions[i]
                 versions_count[minor_version].append(minor_version + "-rc0")
-    logging.debug(versions_count)
+    return minor_versions, versions_count
 
+
+def print_versions_with_all_commits(
+    commits: list[str], minor_versions: list[str], versions_count: dict[str, list]
+) -> None:
+    """Print Linux versions that contains all the commits"""
     len_commits = len(commits)
     first = True
     for minor_version in reversed(minor_versions):
@@ -100,6 +104,19 @@ def main(
                 else:
                     print("", version, end="")
     print("")
+
+
+def main(
+    commits: List[str],
+    debug: bool = typer.Option(False, help="Print debug info."),
+):
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+    single_script_path = os.path.dirname(sys.argv[0]) + "/linux-version-finder-single"
+    minor_versions, versions_count = find_commits_versions(commits, single_script_path)
+    logging.debug(versions_count)
+
+    print_versions_with_all_commits(commits, minor_versions, versions_count)
 
 
 if __name__ == "__main__":
