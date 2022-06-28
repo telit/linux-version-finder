@@ -66,7 +66,7 @@ def version_key(version: str) -> int:
 
 
 def find_commits_versions(
-    commits: list[str], single_script_path: str
+    commits: list[str], all: bool, single_script_path: str
 ) -> tuple[list[str], dict[str, list]]:
     """Find all the versions associated to the commits
 
@@ -78,12 +78,24 @@ def find_commits_versions(
         versions = linux_version_finder_single(single_script_path, commit)
         for version in versions:
             minor_version = get_minor_version(version)
-            versions_count[minor_version].append(version)
+            if all:
+                # If the --no-all option isn't used add the version
+                # because we need to know the version where the commit
+                # was merged.
+                versions_count[minor_version].append(version)
+            else:
+                # If the --no-all option is used add the sha1 of the
+                # commit because we need to know which commit was
+                # merged/backported.
+                versions_count[minor_version].append(commit)
         if minor_version:
             start = minor_versions.index(minor_version) + 1
             for i in range(start, len(minor_versions)):
                 minor_version = minor_versions[i]
-                versions_count[minor_version].append(minor_version + "-rc0")
+                if all:
+                    versions_count[minor_version].append(minor_version + "-rc0")
+                else:
+                    versions_count[minor_version].append(commit)
     return minor_versions, versions_count
 
 
@@ -106,17 +118,55 @@ def print_versions_with_all_commits(
     print("")
 
 
+def get_short_sha(commit: str) -> str:
+    """Get a short unique sha
+
+    E.g. 51b6489 instead of 51b6489bbe2d5433993c7e6dcf5a99039760d3b0."""
+    completedProcess = subprocess.run(
+        ["git", "rev-parse", "--short", commit],
+        capture_output=True,
+        check=True,
+    )
+    return completedProcess.stdout.decode("utf-8").strip()
+
+
+def print_versions_without_all_commits(
+    commits: list[str], minor_versions: list[str], versions_count: dict[str, list]
+) -> None:
+    """Print Linux versions that don't contain all the commits"""
+    len_commits = len(commits)
+    short_sha = {commit: get_short_sha(commit) for commit in commits}
+
+    for minor_version in reversed(minor_versions):
+        minor_version_count = versions_count[minor_version]
+        if len_commits > len(minor_version_count):
+            print(f"{minor_version}:\t", end="")
+            # to speed up the check use a set
+            set_commits_presents = set(minor_version_count)
+            missing_commits = [x for x in commits if x not in set_commits_presents]
+            for commit in missing_commits:
+                short = short_sha[commit]
+                print(f" {short}", end="")
+            print("")
+
+
 def main(
     commits: List[str],
+    all: bool = typer.Option(True, help="Print the versions with all commits."),
     debug: bool = typer.Option(False, help="Print debug info."),
 ):
     if debug:
         logging.basicConfig(level=logging.DEBUG)
     single_script_path = os.path.dirname(sys.argv[0]) + "/linux-version-finder-single"
-    minor_versions, versions_count = find_commits_versions(commits, single_script_path)
+    minor_versions, versions_count = find_commits_versions(
+        commits, all, single_script_path
+    )
     logging.debug(versions_count)
 
-    print_versions_with_all_commits(commits, minor_versions, versions_count)
+    if all:
+        print_versions_with_all_commits(commits, minor_versions, versions_count)
+    else:
+        print_versions_without_all_commits(commits, minor_versions, versions_count)
 
 
 if __name__ == "__main__":
