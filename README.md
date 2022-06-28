@@ -21,4 +21,4 @@ linux-version-finder --help
 
 ## Linux Install requirements
 
-    python3 -mpip install --upgrade --user typer
+    pip3 install -r requirements.txt

@@ -11,6 +11,7 @@ import sys
 from typing import List
 
 import typer
+from tqdm import tqdm
 
 
 def linux_version_finder_single(single_script_path: str, commit: str) -> list[str]:
@@ -73,7 +74,7 @@ def find_commits_versions(
     This is the first half of the tool and the part the require almost all the cpu/mem"""
     minor_versions = get_minor_versions()
     versions_count = collections.defaultdict(list)
-    for commit in commits:
+    for commit in tqdm(commits):
         minor_version = ""
         versions = linux_version_finder_single(single_script_path, commit)
         for version in versions:
