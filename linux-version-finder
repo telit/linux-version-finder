@@ -60,14 +60,16 @@ def main(
     minor_versions = get_minor_versions()
     versions_count = collections.defaultdict(list)
     for commit in commits:
+        minor_version = ""
         versions = linux_version_finder_single(single_script_path, commit)
         for version in versions:
             minor_version = get_minor_version(version)
             versions_count[minor_version].append(version)
-        start = minor_versions.index(minor_version) + 1
-        for i in range(start, len(minor_versions)):
-            minor_version = minor_versions[i]
-            versions_count[minor_version].append(minor_version + "-rc0")
+        if minor_version:
+            start = minor_versions.index(minor_version) + 1
+            for i in range(start, len(minor_versions)):
+                minor_version = minor_versions[i]
+                versions_count[minor_version].append(minor_version + "-rc0")
     logging.debug(versions_count)
 
     len_commits = len(commits)
