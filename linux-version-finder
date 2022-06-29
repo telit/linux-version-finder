@@ -8,6 +8,7 @@ import os.path
 import re
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
 import typer
@@ -67,36 +68,41 @@ def version_key(version: str) -> int:
 
 
 def find_commits_versions(
-    commits: list[str], all: bool, single_script_path: str
+    commits: list[str], all: bool, threads: int, single_script_path: str
 ) -> tuple[list[str], dict[str, list]]:
     """Find all the versions associated to the commits
 
     This is the first half of the tool and the part the require almost all the cpu/mem"""
     minor_versions = get_minor_versions()
     versions_count = collections.defaultdict(list)
-    for commit in tqdm(commits):
-        minor_version = ""
-        versions = linux_version_finder_single(single_script_path, commit)
-        for version in versions:
-            minor_version = get_minor_version(version)
-            if all:
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        future_to_commit_versions = {
+            c: executor.submit(linux_version_finder_single, single_script_path, c)
+            for c in commits
+        }
+        for commit in tqdm(commits):
+            minor_version = ""
+            versions = future_to_commit_versions[commit].result()
+            for version in versions:
+                minor_version = get_minor_version(version)
+                if all:
                 # If the --no-all option isn't used add the version
                 # because we need to know the version where the commit
                 # was merged.
-                versions_count[minor_version].append(version)
-            else:
+                    versions_count[minor_version].append(version)
+                else:
                 # If the --no-all option is used add the sha1 of the
                 # commit because we need to know which commit was
                 # merged/backported.
-                versions_count[minor_version].append(commit)
-        if minor_version:
-            start = minor_versions.index(minor_version) + 1
-            for i in range(start, len(minor_versions)):
-                minor_version = minor_versions[i]
-                if all:
-                    versions_count[minor_version].append(minor_version + "-rc0")
-                else:
                     versions_count[minor_version].append(commit)
+            if minor_version:
+                start = minor_versions.index(minor_version) + 1
+                for i in range(start, len(minor_versions)):
+                    minor_version = minor_versions[i]
+                    if all:
+                        versions_count[minor_version].append(minor_version + "-rc0")
+                    else:
+                        versions_count[minor_version].append(commit)
     return minor_versions, versions_count
 
 
@@ -154,13 +160,14 @@ def print_versions_without_all_commits(
 def main(
     commits: List[str],
     all: bool = typer.Option(True, help="Print the versions with all commits."),
+    threads: int = typer.Option(1, "-t", "--threads", help="Number of threads to use."),
     debug: bool = typer.Option(False, help="Print debug info."),
 ):
     if debug:
         logging.basicConfig(level=logging.DEBUG)
     single_script_path = os.path.dirname(sys.argv[0]) + "/linux-version-finder-single"
     minor_versions, versions_count = find_commits_versions(
-        commits, all, single_script_path
+        commits, all, threads, single_script_path
     )
     logging.debug(versions_count)
 
