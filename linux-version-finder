@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import os.path
+import collections
 import logging
+import os.path
+import re
 import subprocess
 import sys
-import typer
 from typing import List
-import re
-import collections
+
+import typer
 
 
 def linux_version_finder_single(single_script_path: str, commit: str) -> list[str]:
