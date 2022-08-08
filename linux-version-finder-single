@@ -11,7 +11,7 @@ get_version()
 commits="$1 "
 
 # Add the backports
-commits+=$(git log --all --format=%H \
+commits+=$(git log --tags --format=%H \
     --grep="\[ Upstream commit $1 \]" --grep="commit $1 upstream" --grep="(cherry picked from commit $1)")
 
 # Print all of them
